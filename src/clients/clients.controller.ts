@@ -8,9 +8,11 @@ import {
   UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
+import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AdminKeyGuard } from '../auth/admin-key.guard';
 import { generateApiKey, hashApiKey } from '../auth/api-key';
+import { ADMIN_KEY, ApiZodBody } from '../common/openapi';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -25,6 +27,8 @@ type ClientBody = z.infer<typeof clientBodySchema>;
 type CreateClientBody = z.infer<typeof createClientSchema>;
 
 /** Consumers of the service (cotizadores, nora). Admin key only. */
+@ApiTags('admin')
+@ApiSecurity(ADMIN_KEY)
 @Controller('v1/clients')
 @UseGuards(AdminKeyGuard)
 export class ClientsController {
@@ -32,6 +36,7 @@ export class ClientsController {
 
   /** The key is returned once; only its hash is stored. */
   @Post()
+  @ApiZodBody(createClientSchema)
   async create(
     @Body(new ZodValidationPipe(createClientSchema)) body: CreateClientBody,
   ) {
@@ -51,6 +56,7 @@ export class ClientsController {
   }
 
   @Put(':id')
+  @ApiZodBody(clientBodySchema)
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(clientBodySchema)) body: ClientBody,
