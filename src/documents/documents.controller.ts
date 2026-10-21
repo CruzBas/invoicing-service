@@ -13,10 +13,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiHeader, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Document } from '@prisma/client';
 import type { Response } from 'express';
 import { ApiKeyGuard, CurrentClient } from '../auth/api-key.guard';
 import type { AuthenticatedClient } from '../auth/api-key.guard';
+import { API_KEY, ApiZodBody } from '../common/openapi';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { PrismaService } from '../prisma/prisma.service';
 import { renderDocumentPdf } from './document-pdf';
@@ -30,6 +32,8 @@ import type { CreditNoteBody, IssueDocumentBody } from './documents.schemas';
 import { IssueCreditNoteHandler } from './issue-credit-note.handler';
 import { IssueDocumentHandler } from './issue-document.handler';
 
+@ApiTags('documents')
+@ApiSecurity(API_KEY)
 @Controller('v1/documents')
 @UseGuards(ApiKeyGuard)
 export class DocumentsController {
@@ -41,6 +45,8 @@ export class DocumentsController {
 
   @Post()
   @HttpCode(202)
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiZodBody(issueDocumentSchema)
   async issue(
     @CurrentClient() client: AuthenticatedClient,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
@@ -56,6 +62,8 @@ export class DocumentsController {
 
   @Post(':id/credit-notes')
   @HttpCode(202)
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiZodBody(creditNoteSchema)
   async creditNote(
     @CurrentClient() client: AuthenticatedClient,
     @Param('id') id: string,
