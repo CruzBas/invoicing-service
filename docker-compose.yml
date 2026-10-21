@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: invoicing
+      POSTGRES_PASSWORD: invoicing
+      POSTGRES_DB: invoicing
+    ports:
+      - "5434:5432"
+    volumes:
+      - invoicing-db:/var/lib/postgresql
+
+volumes:
+  invoicing-db:
