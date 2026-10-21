@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { setupOpenApi } from './common/openapi';
 import { AppConfigService } from './config/app-config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
+  setupOpenApi(app);
   await app.listen(app.get(AppConfigService).get('PORT'));
 }
 void bootstrap();
