@@ -3,7 +3,7 @@ import { z } from 'zod';
 const hex64 = z.string().regex(/^[0-9a-f]{64}$/i, 'must be 64 hex characters');
 
 export const configSchema = z.object({
-  PORT: z.coerce.number().int().default(3000),
+  PORT: z.coerce.number().int().default(3001),
   DATABASE_URL: z.string().url(),
   HACIENDA_IDP_URL: z.string().url(), // realm rut-stag or rut
   HACIENDA_CLIENT_ID: z.enum(['api-stag', 'api-prod']),
@@ -22,7 +22,6 @@ export const configSchema = z.object({
 
 export type AppConfig = z.infer<typeof configSchema>;
 
-/** Fails at startup if anything is missing or malformed. */
 export function validateConfig(raw: Record<string, unknown>): AppConfig {
   const parsed = configSchema.safeParse(raw);
   if (!parsed.success) {
