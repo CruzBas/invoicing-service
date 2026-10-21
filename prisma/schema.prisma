@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Emitter {
+  id                 String  @id
+  identificationType String  @map("identification_type") // 01 física, 02 jurídica...
+  identification     String
+  name               String
+  tradeName          String? @map("trade_name")
+  activityCode       String  @map("activity_code")
+  province           String
+  canton             String
+  district           String
+  otherSigns         String  @map("other_signs")
+  email              String
+  branchCode         String  @default("001") @map("branch_code")
+  terminalCode       String  @default("00001") @map("terminal_code")
+
+  // AES-256-GCM: iv (12) | tag (16) | ciphertext. Null until PUT /certificate.
+  certificateEnc    Bytes? @map("certificate_enc")
+  certificatePinEnc Bytes? @map("certificate_pin_enc")
+  apiUserEnc        Bytes? @map("api_user_enc")
+  apiPasswordEnc    Bytes? @map("api_password_enc")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sequences DocumentSequence[]
+  documents Document[]
+  clients   ApiClientEmitter[]
+
+  @@map("emitter")
+}
+
+model DocumentSequence {
+  emitterId    String @map("emitter_id")
+  documentType String @map("document_type") // 01, 03, 04...
+  lastNumber   BigInt @default(0) @map("last_number")
+
+  emitter Emitter @relation(fields: [emitterId], references: [id])
+
+  @@id([emitterId, documentType])
+  @@map("document_sequence")
+}
+
+model ApiClient {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  keyHash    String   @unique @map("key_hash") // sha256 hex of the API key
+  webhookUrl String?  @map("webhook_url")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  emitters  ApiClientEmitter[]
+  documents Document[]
+
+  @@map("api_client")
+}
+
+model ApiClientEmitter {
+  clientId  String @map("client_id")
+  emitterId String @map("emitter_id")
+
+  client  ApiClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  emitter Emitter   @relation(fields: [emitterId], references: [id])
+
+  @@id([clientId, emitterId])
+  @@map("api_client_emitter")
+}
+
+model Document {
+  id                String   @id @default(uuid())
+  emitterId         String   @map("emitter_id")
+  clientId          String   @map("client_id") // which API key requested it
+  externalReference String   @map("external_reference") // e.g. CR-180054 or the item id
+  idempotencyKey    String   @map("idempotency_key")
+  documentType      String   @map("document_type")
+  key               String   @unique // 50-digit clave
+  consecutive       String
+  issuedAt          DateTime @map("issued_at")
+  currency          String
+  exchangeRate      Decimal  @map("exchange_rate") @db.Decimal(18, 5)
+  paymentMethod     String   @map("payment_method")
+  total             Decimal  @db.Decimal(18, 5)
+  totalTax          Decimal  @map("total_tax") @db.Decimal(18, 5)
+  status            String // Signed | Sent | Accepted | Rejected | Error
+  haciendaMessage   String?  @map("hacienda_message")
+  signedXml         String   @map("signed_xml")
+  responseXml       String?  @map("response_xml") // MensajeHacienda
+  referencedId      String?  @map("referenced_id") // credit note -> original invoice
+  receiver          Json?
+  lines             Json
+
+  // Delivery to Hacienda and polling. nextAttemptAt doubles as a lease.
+  sendAttempts  Int       @default(0) @map("send_attempts")
+  pollAttempts  Int       @default(0) @map("poll_attempts")
+  nextAttemptAt DateTime? @map("next_attempt_at")
+
+  // Outbox for the signed webhook to the consumer.
+  webhookPending  Boolean   @default(false) @map("webhook_pending")
+  webhookAttempts Int       @default(0) @map("webhook_attempts")
+  webhookNextAt   DateTime? @map("webhook_next_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  emitter     Emitter    @relation(fields: [emitterId], references: [id])
+  client      ApiClient  @relation(fields: [clientId], references: [id])
+  referenced  Document?  @relation("CreditNotes", fields: [referencedId], references: [id])
+  creditNotes Document[] @relation("CreditNotes")
+
+  @@unique([clientId, idempotencyKey])
+  @@index([clientId, externalReference])
+  @@index([status, nextAttemptAt])
+  @@index([webhookPending, webhookNextAt])
+  @@map("document")
+}
