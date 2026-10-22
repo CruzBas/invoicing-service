@@ -15,14 +15,14 @@ import { TtlCache } from '../infrastructure/ttl-cache';
 
 const HOUR = 3_600_000;
 
-/** Taxpayers, CABYS and the exchange rate, cached in memory. */
+
 @Injectable()
 export class LookupsService {
   private readonly taxpayers = new TtlCache<unknown>(HOUR);
   private readonly cabys = new TtlCache<CabysItem[]>(24 * HOUR);
   private readonly rates = new TtlCache<Decimal>(24 * HOUR, 10);
 
-  constructor(private readonly hacienda: HaciendaPublicApiClient) {}
+  constructor(private readonly hacienda: HaciendaPublicApiClient) { }
 
   taxpayer(identification: string): Promise<unknown> {
     const id = identification.replace(/\D/g, '');
