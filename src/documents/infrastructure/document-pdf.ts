@@ -1,9 +1,9 @@
 import { Document, Emitter } from '@prisma/client';
 import { DateTime } from 'luxon';
 import PDFDocument from 'pdfkit';
-import { COSTA_RICA_ZONE } from './domain/document-types';
-import { StoredLine } from './domain/stored-line';
-import { XmlReceiver } from './xml/document-xml.builder';
+import { COSTA_RICA_ZONE } from '../../shared/domain/costa-rica';
+import { Receiver } from '../domain/receiver';
+import { StoredLine } from '../domain/stored-line';
 
 const TITLES: Record<string, string> = {
   '01': 'Factura electrónica',
@@ -24,7 +24,7 @@ export function renderDocumentPdf(
     pdf.on('end', () => resolve(Buffer.concat(chunks))),
   );
 
-  const receiver = doc.receiver as unknown as XmlReceiver | null;
+  const receiver = doc.receiver as unknown as Receiver | null;
   const lines = doc.lines as unknown as StoredLine[];
   const issued = DateTime.fromJSDate(doc.issuedAt)
     .setZone(COSTA_RICA_ZONE)

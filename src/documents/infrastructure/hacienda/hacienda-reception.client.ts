@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AppConfigService } from '../config/app-config.service';
-import { fetchWithTimeout } from '../common/http';
+import { AppConfigService } from '../../../shared/infrastructure/config/app-config.service';
+import { fetchWithTimeout } from '../../../shared/infrastructure/http';
 
 export interface ReceptionPayload {
   clave: string;
@@ -105,4 +105,12 @@ export class HaciendaReceptionClient {
 function describe(err: unknown): string {
   if (err instanceof Error && err.name === 'TimeoutError') return 'timeout';
   return err instanceof Error ? err.message : String(err);
+}
+
+/** DetalleMensaje of a MensajeHacienda, as plain text. */
+export function detailMessage(responseXml: string): string | null {
+  const match = /<DetalleMensaje>([\s\S]*?)<\/DetalleMensaje>/.exec(
+    responseXml,
+  );
+  return match ? match[1].trim().slice(0, 2000) : null;
 }

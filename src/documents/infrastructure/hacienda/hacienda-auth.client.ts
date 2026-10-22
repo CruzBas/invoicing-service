@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AppConfigService } from '../config/app-config.service';
-import { fetchWithTimeout } from '../common/http';
+import { AppConfigService } from '../../../shared/infrastructure/config/app-config.service';
+import { fetchWithTimeout } from '../../../shared/infrastructure/http';
 
 interface CachedToken {
   accessToken: string;

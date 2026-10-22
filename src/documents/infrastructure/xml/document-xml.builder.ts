@@ -2,9 +2,11 @@ import Decimal from 'decimal.js';
 import { DateTime } from 'luxon';
 import { create } from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
-import { formatHaciendaDate } from '../domain/document-key';
-import { DocumentType } from '../domain/document-types';
-import { CalculatedLine, Summary } from '../domain/totals-calculator';
+import { formatHaciendaDate } from '../../domain/document-key';
+import { DocumentType } from '../../domain/document-types';
+import { Receiver } from '../../domain/receiver';
+import { Reference } from '../../domain/reference';
+import { CalculatedLine, Summary } from '../../domain/totals-calculator';
 
 const ROOTS: Record<DocumentType, { name: string; ns: string }> = {
   '01': {
@@ -34,22 +36,6 @@ export interface XmlEmitter {
   email: string;
 }
 
-export interface XmlReceiver {
-  name: string;
-  identificationType: string;
-  identification: string;
-  email?: string;
-  foreignAddress?: string;
-}
-
-export interface XmlReference {
-  documentType: string; // TipoDocIR: 01 factura, 04 tiquete
-  key: string;
-  issuedAt: DateTime;
-  code: string; // 01 anula, 04 referencia a otro documento...
-  reason: string;
-}
-
 export interface DocumentXmlInput {
   documentType: DocumentType;
   key: string;
@@ -57,14 +43,14 @@ export interface DocumentXmlInput {
   issuedAt: DateTime;
   softwareProviderId: string;
   emitter: XmlEmitter;
-  receiver?: XmlReceiver;
+  receiver?: Receiver;
   saleCondition?: string; // 01 contado
   lines: CalculatedLine[];
   summary: Summary;
   currency: string;
   exchangeRate: Decimal;
   paymentMethod: string; // 01 efectivo, 02 tarjeta...
-  reference?: XmlReference;
+  reference?: Reference;
 }
 
 const money = (d: Decimal) => d.toFixed(5);
@@ -133,7 +119,7 @@ function addEmitter(doc: XMLBuilder, e: XmlEmitter) {
   node.ele('CorreoElectronico').txt(e.email);
 }
 
-function addReceiver(doc: XMLBuilder, r: XmlReceiver) {
+function addReceiver(doc: XMLBuilder, r: Receiver) {
   const node = doc.ele('Receptor');
   node.ele('Nombre').txt(r.name);
   const id = node.ele('Identificacion');

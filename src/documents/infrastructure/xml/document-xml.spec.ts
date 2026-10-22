@@ -5,12 +5,15 @@ import { DateTime } from 'luxon';
 import { join } from 'path';
 import * as xadesjs from 'xadesjs';
 import { validateXML } from 'xmllint-wasm';
-import { createTestP12 } from '../../signing/test-certificate';
-import { SigningKey, XadesSigner } from '../../signing/xades-signer';
-import { formatConsecutive } from '../domain/consecutive-number';
-import { buildDocumentKey } from '../domain/document-key';
-import { DocumentType } from '../domain/document-types';
-import { calculateTotals } from '../domain/totals-calculator';
+import { createTestP12 } from '../../../shared/infrastructure/signing/test-certificate';
+import {
+  SigningKey,
+  XadesSigner,
+} from '../../../shared/infrastructure/signing/xades-signer';
+import { formatConsecutive } from '../../domain/consecutive-number';
+import { buildDocumentKey } from '../../domain/document-key';
+import { DocumentType } from '../../domain/document-types';
+import { calculateTotals } from '../../domain/totals-calculator';
 import { DocumentXmlInput, buildDocumentXml } from './document-xml.builder';
 
 const XSD_DIR = join(__dirname, 'xsd');
