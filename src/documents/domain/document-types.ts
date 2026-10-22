@@ -20,5 +20,3 @@ export const FINAL_STATUSES: readonly string[] = [
   DocumentStatus.Rejected,
   DocumentStatus.Error,
 ];
-
-export const COSTA_RICA_ZONE = 'America/Costa_Rica';

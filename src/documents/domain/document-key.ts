@@ -1,6 +1,6 @@
 import { randomInt } from 'crypto';
 import { DateTime } from 'luxon';
-import { COSTA_RICA_ZONE } from './document-types';
+import { COSTA_RICA_ZONE } from '../../shared/domain/costa-rica';
 
 /** 1 normal, 2 contingency, 3 without internet. */
 export type Situation = '1' | '2' | '3';
