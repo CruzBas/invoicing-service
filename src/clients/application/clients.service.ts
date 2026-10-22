@@ -9,7 +9,6 @@ import { AuthenticatedClient } from '../domain/authenticated-client';
 import { ClientsRepository } from '../infrastructure/clients.repository';
 import { ClientDto, CreateClientDto } from './clients.dto';
 
-/** Consumers of the service (cotizadores, nora) and their API keys. */
 @Injectable()
 export class ClientsService {
   constructor(
@@ -40,7 +39,6 @@ export class ClientsService {
     return { id, ...changes };
   }
 
-  /** The client that owns this key, or null. */
   async authenticate(apiKey: string): Promise<AuthenticatedClient | null> {
     const client = await this.clients.findByKeyHash(hashApiKey(apiKey));
     if (!client) return null;
