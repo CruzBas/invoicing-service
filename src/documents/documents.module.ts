@@ -1,31 +1,38 @@
 import { Module } from '@nestjs/common';
+import { ClientsModule } from '../clients/clients.module';
 import { EmittersModule } from '../emitters/emitters.module';
-import { HaciendaAuthClient } from '../hacienda/hacienda-auth.client';
-import { HaciendaCallbackController } from '../hacienda/hacienda-callback.controller';
-import { HaciendaReceptionClient } from '../hacienda/hacienda-reception.client';
-import { StatusPoller } from '../hacienda/status-poller';
 import { LookupsModule } from '../lookups/lookups.module';
-import { XadesSigner } from '../signing/xades-signer';
-import { WebhookDispatcher } from '../webhooks/webhook-dispatcher';
-import { DocumentDeliveryService } from './document-delivery.service';
-import { DocumentIssuer } from './document-issuer';
-import { DocumentsController } from './documents.controller';
-import { IssueCreditNoteHandler } from './issue-credit-note.handler';
-import { IssueDocumentHandler } from './issue-document.handler';
+import { XadesSigner } from '../shared/infrastructure/signing/xades-signer';
+import { DocumentDeliveryService } from './application/document-delivery.service';
+import { DocumentIssuer } from './application/document-issuer';
+import { DocumentQueries } from './application/document-queries';
+import { IssueCreditNoteUseCase } from './application/issue-credit-note.use-case';
+import { IssueDocumentUseCase } from './application/issue-document.use-case';
+import { StatusPoller } from './application/status-poller';
+import { WebhookDispatcher } from './application/webhook-dispatcher';
+import { DocumentRepository } from './infrastructure/document.repository';
+import { HaciendaAuthClient } from './infrastructure/hacienda/hacienda-auth.client';
+import { HaciendaReceptionClient } from './infrastructure/hacienda/hacienda-reception.client';
+import { DocumentsController } from './presentation/documents.controller';
+import { HaciendaCallbackController } from './presentation/hacienda-callback.controller';
 
 @Module({
-  imports: [EmittersModule, LookupsModule],
+  imports: [ClientsModule, EmittersModule, LookupsModule],
   controllers: [DocumentsController, HaciendaCallbackController],
   providers: [
-    XadesSigner,
-    HaciendaAuthClient,
-    HaciendaReceptionClient,
-    DocumentDeliveryService,
+    // application
+    IssueDocumentUseCase,
+    IssueCreditNoteUseCase,
     DocumentIssuer,
-    IssueDocumentHandler,
-    IssueCreditNoteHandler,
+    DocumentQueries,
+    DocumentDeliveryService,
     WebhookDispatcher,
     StatusPoller,
+    // infrastructure
+    DocumentRepository,
+    HaciendaAuthClient,
+    HaciendaReceptionClient,
+    XadesSigner,
   ],
 })
 export class DocumentsModule {}

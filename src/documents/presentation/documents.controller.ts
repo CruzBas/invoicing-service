@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Body,
-  ConflictException,
   Controller,
   Get,
   Headers,
@@ -14,23 +13,27 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiHeader, ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { Document } from '@prisma/client';
 import type { Response } from 'express';
-import { ApiKeyGuard, CurrentClient } from '../auth/api-key.guard';
-import type { AuthenticatedClient } from '../auth/api-key.guard';
-import { API_KEY, ApiZodBody } from '../common/openapi';
-import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { PrismaService } from '../prisma/prisma.service';
-import { renderDocumentPdf } from './document-pdf';
-import { DocumentStatus } from './domain/document-types';
+import type { AuthenticatedClient } from '../../clients/domain/authenticated-client';
+import {
+  ApiKeyGuard,
+  CurrentClient,
+} from '../../clients/presentation/api-key.guard';
+import { API_KEY, ApiZodBody } from '../../shared/presentation/openapi';
+import { ZodValidationPipe } from '../../shared/presentation/zod-validation.pipe';
+import { DocumentQueries } from '../application/document-queries';
 import {
   creditNoteSchema,
   idempotencyKeySchema,
   issueDocumentSchema,
-} from './documents.schemas';
-import type { CreditNoteBody, IssueDocumentBody } from './documents.schemas';
-import { IssueCreditNoteHandler } from './issue-credit-note.handler';
-import { IssueDocumentHandler } from './issue-document.handler';
+} from '../application/documents.schemas';
+import type {
+  CreditNoteBody,
+  IssueDocumentBody,
+} from '../application/documents.schemas';
+import { IssueCreditNoteUseCase } from '../application/issue-credit-note.use-case';
+import { IssueDocumentUseCase } from '../application/issue-document.use-case';
+import type { Document } from '../infrastructure/document.repository';
 
 @ApiTags('documents')
 @ApiSecurity(API_KEY)
@@ -38,9 +41,9 @@ import { IssueDocumentHandler } from './issue-document.handler';
 @UseGuards(ApiKeyGuard)
 export class DocumentsController {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly issueDocument: IssueDocumentHandler,
-    private readonly issueCreditNote: IssueCreditNoteHandler,
+    private readonly queries: DocumentQueries,
+    private readonly issueDocument: IssueDocumentUseCase,
+    private readonly issueCreditNote: IssueCreditNoteUseCase,
   ) {}
 
   @Post()
@@ -87,10 +90,10 @@ export class DocumentsController {
     if (!externalReference) {
       throw new BadRequestException('externalReference is required');
     }
-    const docs = await this.prisma.document.findMany({
-      where: { clientId: client.id, externalReference },
-      orderBy: { createdAt: 'asc' },
-    });
+    const docs = await this.queries.byExternalReference(
+      client.id,
+      externalReference,
+    );
     return docs.map(toView);
   }
 
@@ -99,7 +102,7 @@ export class DocumentsController {
     @CurrentClient() client: AuthenticatedClient,
     @Param('id') id: string,
   ) {
-    return toView(await this.find(client, id));
+    return toView(await this.queries.get(client.id, id));
   }
 
   @Get(':id/xml')
@@ -108,7 +111,7 @@ export class DocumentsController {
     @Param('id') id: string,
     @Res() res: Response,
   ) {
-    const doc = await this.find(client, id);
+    const doc = await this.queries.get(client.id, id);
     sendFile(res, 'application/xml', `${doc.key}.xml`, doc.signedXml);
   }
 
@@ -118,7 +121,7 @@ export class DocumentsController {
     @Param('id') id: string,
     @Res() res: Response,
   ) {
-    const doc = await this.find(client, id);
+    const doc = await this.queries.get(client.id, id);
     if (!doc.responseXml)
       throw new NotFoundException('No response from Hacienda yet');
     sendFile(
@@ -135,29 +138,8 @@ export class DocumentsController {
     @Param('id') id: string,
     @Res() res: Response,
   ) {
-    const doc = await this.find(client, id);
-    if (doc.status !== DocumentStatus.Accepted) {
-      throw new ConflictException('Only accepted documents have a PDF');
-    }
-    const [emitter, referenced] = await Promise.all([
-      this.prisma.emitter.findUniqueOrThrow({ where: { id: doc.emitterId } }),
-      doc.referencedId
-        ? this.prisma.document.findUnique({ where: { id: doc.referencedId } })
-        : null,
-    ]);
-    const file = await renderDocumentPdf(doc, emitter, referenced?.key);
-    sendFile(res, 'application/pdf', `${doc.key}.pdf`, file);
-  }
-
-  private async find(
-    client: AuthenticatedClient,
-    id: string,
-  ): Promise<Document> {
-    const doc = await this.prisma.document.findFirst({
-      where: { id, clientId: client.id },
-    });
-    if (!doc) throw new NotFoundException();
-    return doc;
+    const { key, file } = await this.queries.pdf(client.id, id);
+    sendFile(res, 'application/pdf', `${key}.pdf`, file);
   }
 }
 
