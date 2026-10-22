@@ -13,7 +13,10 @@ import {
   Document,
   DocumentRepository,
 } from '../infrastructure/document.repository';
-import { HaciendaAuthClient } from '../infrastructure/hacienda/hacienda-auth.client';
+import {
+  HaciendaAuthClient,
+  HaciendaAuthError,
+} from '../infrastructure/hacienda/hacienda-auth.client';
 import {
   HaciendaReceptionClient,
   HaciendaState,
@@ -45,7 +48,9 @@ export class DocumentDeliveryService {
   async send(documentId: string): Promise<void> {
     const doc = await this.documents.get(documentId);
     if (doc.status !== DocumentStatus.Signed) return;
-    const { token, emitter } = await this.session(doc.emitterId);
+    const session = await this.session(doc);
+    if (!session) return;
+    const { token, emitter } = session;
 
     if (doc.sendAttempts > 0) {
       const existing = await this.reception.status(token, doc.key);
@@ -89,8 +94,9 @@ export class DocumentDeliveryService {
   async poll(documentId: string): Promise<void> {
     const doc = await this.documents.get(documentId);
     if (doc.status !== DocumentStatus.Sent) return;
-    const { token } = await this.session(doc.emitterId);
-    const result = await this.reception.status(token, doc.key);
+    const session = await this.session(doc);
+    if (!session) return;
+    const result = await this.reception.status(session.token, doc.key);
 
     switch (result.kind) {
       case 'found':
@@ -207,11 +213,24 @@ export class DocumentDeliveryService {
     };
   }
 
-  private async session(emitterId: string) {
+  /** Null when the IDP login is backing off; the document then waits until it may retry. */
+  private async session(doc: Document) {
     const [credentials, emitter] = await Promise.all([
-      this.emitters.credentials(emitterId),
-      this.emitters.get(emitterId),
+      this.emitters.credentials(doc.emitterId),
+      this.emitters.get(doc.emitterId),
     ]);
-    return { token: await this.auth.token(emitterId, credentials), emitter };
+    try {
+      return {
+        token: await this.auth.token(doc.emitterId, credentials),
+        emitter,
+      };
+    } catch (err) {
+      if (!(err instanceof HaciendaAuthError)) throw err;
+      await this.documents.update(doc.id, { nextAttemptAt: err.retryAt });
+      this.logger.warn(
+        `${doc.key}: ${err.message}, retrying at ${err.retryAt.toISOString()}`,
+      );
+      return null;
+    }
   }
 }
