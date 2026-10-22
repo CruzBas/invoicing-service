@@ -1,18 +1,14 @@
-import {
-  ForbiddenException,
-  Injectable,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import Decimal from 'decimal.js';
-import { AuthenticatedClient } from '../auth/api-key.guard';
-import { LookupsService } from '../lookups/lookups.service';
-import { calculateTotals, totalsMatch } from './domain/totals-calculator';
-import { DocumentIssuer } from './document-issuer';
+import { ForbiddenError } from '../../shared/application/errors';
+import { AuthenticatedClient } from '../../clients/domain/authenticated-client';
+import { LookupsService } from '../../lookups/application/lookups.service';
+import { DocumentIssuer, checkedTotals } from './document-issuer';
 import { IssueDocumentBody } from './documents.schemas';
 
 /** POST /v1/documents: invoice (01) or ticket (04). */
 @Injectable()
-export class IssueDocumentHandler {
+export class IssueDocumentUseCase {
   constructor(
     private readonly issuer: DocumentIssuer,
     private readonly lookups: LookupsService,
@@ -24,21 +20,12 @@ export class IssueDocumentHandler {
     body: IssueDocumentBody,
   ) {
     if (!client.emitterIds.includes(body.emitterId)) {
-      throw new ForbiddenException('This key cannot use that emitter');
+      throw new ForbiddenError('This key cannot use that emitter');
     }
     const existing = await this.issuer.findExisting(client.id, idempotencyKey);
     if (existing) return existing;
 
-    // The caller's totals are not used: they are only checked.
-    const { lines, summary } = calculateTotals(body.lines);
-    if (!totalsMatch(summary.total, body.total)) {
-      throw new UnprocessableEntityException({
-        message: 'Declared total does not match the computed total',
-        computedTotal: summary.total.toFixed(5),
-        computedTax: summary.totalTax.toFixed(5),
-      });
-    }
-
+    const { lines, summary } = checkedTotals(body.lines, body.total);
     const exchangeRate =
       body.currency === 'CRC'
         ? new Decimal(1)

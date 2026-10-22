@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AppConfigService } from '../config/app-config.service';
-import { fetchWithTimeout } from '../common/http';
-import { PrismaService } from '../prisma/prisma.service';
-import { backoff } from '../documents/document-delivery.service';
-import { SIGNATURE_HEADER, signWebhook } from './webhook-signature';
+import { backoff } from '../../shared/domain/backoff';
+import { AppConfigService } from '../../shared/infrastructure/config/app-config.service';
+import { fetchWithTimeout } from '../../shared/infrastructure/http';
+import { DocumentRepository } from '../infrastructure/document.repository';
+import {
+  SIGNATURE_HEADER,
+  signWebhook,
+} from '../infrastructure/webhook-signature';
 
 /** After this many failures the event is dropped; the consumer can still GET the document. */
 const MAX_ATTEMPTS = 15;
@@ -13,15 +16,12 @@ export class WebhookDispatcher {
   private readonly logger = new Logger(WebhookDispatcher.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly documents: DocumentRepository,
     private readonly config: AppConfigService,
   ) {}
 
   async deliver(documentId: string): Promise<void> {
-    const doc = await this.prisma.document.findUniqueOrThrow({
-      where: { id: documentId },
-      include: { client: { select: { webhookUrl: true } } },
-    });
+    const doc = await this.documents.getWithWebhookUrl(documentId);
     if (!doc.webhookPending) return;
 
     const url = doc.client.webhookUrl;
@@ -74,29 +74,26 @@ export class WebhookDispatcher {
       this.logger.error(
         `Webhook for ${doc.key} dropped after ${attempts} attempts: ${reason}`,
       );
-      await this.prisma.document.update({
-        where: { id: doc.id },
-        data: {
-          webhookPending: false,
-          webhookAttempts: attempts,
-          webhookNextAt: null,
-        },
+      await this.documents.update(doc.id, {
+        webhookPending: false,
+        webhookAttempts: attempts,
+        webhookNextAt: null,
       });
       return;
     }
     this.logger.warn(
       `Webhook for ${doc.key} failed (${reason}), retrying later`,
     );
-    await this.prisma.document.update({
-      where: { id: doc.id },
-      data: { webhookAttempts: attempts, webhookNextAt: backoff(attempts - 1) },
+    await this.documents.update(doc.id, {
+      webhookAttempts: attempts,
+      webhookNextAt: backoff(attempts - 1),
     });
   }
 
-  private async done(id: string) {
-    await this.prisma.document.update({
-      where: { id },
-      data: { webhookPending: false, webhookNextAt: null },
+  private done(id: string) {
+    return this.documents.update(id, {
+      webhookPending: false,
+      webhookNextAt: null,
     });
   }
 }

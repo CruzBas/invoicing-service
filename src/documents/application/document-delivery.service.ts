@@ -1,26 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Document } from '@prisma/client';
 import { DateTime } from 'luxon';
-import { AppConfigService } from '../config/app-config.service';
-import { EmitterProfile, EmittersService } from '../emitters/emitters.service';
-import { HaciendaAuthClient } from '../hacienda/hacienda-auth.client';
+import { MINUTE, backoff } from '../../shared/domain/backoff';
+import { AppConfigService } from '../../shared/infrastructure/config/app-config.service';
+import {
+  EmitterProfile,
+  EmittersService,
+} from '../../emitters/application/emitters.service';
+import { formatHaciendaDate } from '../domain/document-key';
+import { DocumentStatus } from '../domain/document-types';
+import { Receiver } from '../domain/receiver';
+import {
+  Document,
+  DocumentRepository,
+} from '../infrastructure/document.repository';
+import { HaciendaAuthClient } from '../infrastructure/hacienda/hacienda-auth.client';
 import {
   HaciendaReceptionClient,
   HaciendaState,
   ReceptionPayload,
-} from '../hacienda/hacienda-reception.client';
-import { PrismaService } from '../prisma/prisma.service';
-import { formatHaciendaDate } from './domain/document-key';
-import { DocumentStatus } from './domain/document-types';
-import { XmlReceiver } from './xml/document-xml.builder';
-
-const MINUTE = 60_000;
-
-/** 1, 2, 4… minutes, capped at one hour. */
-export function backoff(attempt: number): Date {
-  const delay = Math.min(MINUTE * 2 ** Math.min(attempt, 10), 60 * MINUTE);
-  return new Date(Date.now() + delay);
-}
+  detailMessage,
+} from '../infrastructure/hacienda/hacienda-reception.client';
 
 /** Hacienda only takes these identification types in the reception JSON. */
 const RECEPTION_ID_TYPES = ['01', '02', '03', '04'];
@@ -30,7 +29,7 @@ export class DocumentDeliveryService {
   private readonly logger = new Logger(DocumentDeliveryService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly documents: DocumentRepository,
     private readonly emitters: EmittersService,
     private readonly auth: HaciendaAuthClient,
     private readonly reception: HaciendaReceptionClient,
@@ -44,9 +43,7 @@ export class DocumentDeliveryService {
    * generated for the same document.
    */
   async send(documentId: string): Promise<void> {
-    const doc = await this.prisma.document.findUniqueOrThrow({
-      where: { id: documentId },
-    });
+    const doc = await this.documents.get(documentId);
     if (doc.status !== DocumentStatus.Signed) return;
     const { token, emitter } = await this.session(doc.emitterId);
 
@@ -68,10 +65,7 @@ export class DocumentDeliveryService {
     }
 
     // Count the attempt before the POST: a crash mid-request still forces a lookup next time.
-    await this.prisma.document.update({
-      where: { id: doc.id },
-      data: { sendAttempts: { increment: 1 } },
-    });
+    await this.documents.countSendAttempt(doc.id);
     const result = await this.reception.submit(
       token,
       this.payload(doc, emitter),
@@ -93,9 +87,7 @@ export class DocumentDeliveryService {
 
   /** Asks Hacienda for the state of a Sent document. */
   async poll(documentId: string): Promise<void> {
-    const doc = await this.prisma.document.findUniqueOrThrow({
-      where: { id: documentId },
-    });
+    const doc = await this.documents.get(documentId);
     if (doc.status !== DocumentStatus.Sent) return;
     const { token } = await this.session(doc.emitterId);
     const result = await this.reception.status(token, doc.key);
@@ -105,11 +97,10 @@ export class DocumentDeliveryService {
         return this.applyState(doc, result.state, result.responseXml);
       case 'not_found':
         // Hacienda lost it: back to Signed, resent with the same key.
-        await this.prisma.document.update({
-          where: { id: doc.id },
-          data: { status: DocumentStatus.Signed, nextAttemptAt: new Date() },
+        return this.documents.update(doc.id, {
+          status: DocumentStatus.Signed,
+          nextAttemptAt: new Date(),
         });
-        return;
       case 'unauthorized':
         this.auth.invalidate(doc.emitterId);
         return this.retryLater(
@@ -124,6 +115,11 @@ export class DocumentDeliveryService {
           result.reason,
         );
     }
+  }
+
+  /** Hacienda's callback only moves the next poll forward; the state is read back from Hacienda. */
+  pollSoon(key: string): Promise<void> {
+    return this.documents.pollSoon(key);
   }
 
   private async applyState(
@@ -147,14 +143,11 @@ export class DocumentDeliveryService {
     }
   }
 
-  private async markSent(doc: Document) {
-    await this.prisma.document.update({
-      where: { id: doc.id },
-      data: {
-        status: DocumentStatus.Sent,
-        pollAttempts: 0,
-        nextAttemptAt: new Date(Date.now() + MINUTE),
-      },
+  private markSent(doc: Document) {
+    return this.documents.update(doc.id, {
+      status: DocumentStatus.Sent,
+      pollAttempts: 0,
+      nextAttemptAt: new Date(Date.now() + MINUTE),
     });
   }
 
@@ -164,17 +157,14 @@ export class DocumentDeliveryService {
     responseXml?: string,
     message?: string,
   ) {
-    await this.prisma.document.update({
-      where: { id: doc.id },
-      data: {
-        status,
-        responseXml: responseXml ?? null,
-        haciendaMessage:
-          message ?? (responseXml ? detailMessage(responseXml) : null),
-        nextAttemptAt: null,
-        webhookPending: true,
-        webhookNextAt: new Date(),
-      },
+    await this.documents.update(doc.id, {
+      status,
+      responseXml: responseXml ?? null,
+      haciendaMessage:
+        message ?? (responseXml ? detailMessage(responseXml) : null),
+      nextAttemptAt: null,
+      webhookPending: true,
+      webhookNextAt: new Date(),
     });
     this.logger.log(`${doc.key} -> ${status}`);
   }
@@ -189,15 +179,15 @@ export class DocumentDeliveryService {
       'sendAttempts' in attempts
         ? attempts.sendAttempts
         : attempts.pollAttempts;
-    await this.prisma.document.update({
-      where: { id: doc.id },
-      data: { ...attempts, nextAttemptAt: backoff(n) },
+    await this.documents.update(doc.id, {
+      ...attempts,
+      nextAttemptAt: backoff(n),
     });
     this.logger.warn(`${doc.key}: ${reason}, retrying later`);
   }
 
   private payload(doc: Document, emitter: EmitterProfile): ReceptionPayload {
-    const receiver = doc.receiver as unknown as XmlReceiver | null;
+    const receiver = doc.receiver as unknown as Receiver | null;
     return {
       clave: doc.key,
       fecha: formatHaciendaDate(DateTime.fromJSDate(doc.issuedAt)),
@@ -224,12 +214,4 @@ export class DocumentDeliveryService {
     ]);
     return { token: await this.auth.token(emitterId, credentials), emitter };
   }
-}
-
-/** DetalleMensaje of a MensajeHacienda, as plain text. */
-export function detailMessage(responseXml: string): string | null {
-  const match = /<DetalleMensaje>([\s\S]*?)<\/DetalleMensaje>/.exec(
-    responseXml,
-  );
-  return match ? match[1].trim().slice(0, 2000) : null;
 }

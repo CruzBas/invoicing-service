@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js';
 import { z } from 'zod';
-import { IVA_RATES } from './domain/totals-calculator';
+import { IVA_RATES } from '../domain/totals-calculator';
 
 const decimal = (opts: { maxDecimals: number; positive?: boolean }) =>
   z.union([z.string(), z.number()]).transform((v, ctx) => {
