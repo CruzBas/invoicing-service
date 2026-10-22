@@ -5,8 +5,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { AppConfigService } from '../config/app-config.service';
-import { safeEqual } from './api-key';
+import { AppConfigService } from '../../shared/infrastructure/config/app-config.service';
+import { safeEqual } from '../domain/api-key';
 
 /** Administration routes use their own key, separate from the consumers'. */
 @Injectable()
