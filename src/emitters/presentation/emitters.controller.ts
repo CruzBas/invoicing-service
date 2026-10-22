@@ -1,11 +1,17 @@
 import { Body, Controller, Param, Put, UseGuards } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { AdminKeyGuard } from '../auth/admin-key.guard';
-import { ADMIN_KEY, ApiZodBody } from '../common/openapi';
-import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { certificateBodySchema, emitterBodySchema } from './emitters.schemas';
-import type { CertificateBody, EmitterBody } from './emitters.schemas';
-import { EmittersService } from './emitters.service';
+import { AdminKeyGuard } from '../../clients/presentation/admin-key.guard';
+import { ADMIN_KEY, ApiZodBody } from '../../shared/presentation/openapi';
+import { ZodValidationPipe } from '../../shared/presentation/zod-validation.pipe';
+import {
+  certificateBodySchema,
+  emitterBodySchema,
+} from '../application/emitters.schemas';
+import type {
+  CertificateBody,
+  EmitterBody,
+} from '../application/emitters.schemas';
+import { EmittersService } from '../application/emitters.service';
 
 @ApiTags('admin')
 @ApiSecurity(ADMIN_KEY)

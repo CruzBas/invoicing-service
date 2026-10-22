@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { EmittersController } from './emitters.controller';
-import { EmittersService } from './emitters.service';
+import { EmittersService } from './application/emitters.service';
+import { EmittersRepository } from './infrastructure/emitters.repository';
+import { EmittersController } from './presentation/emitters.controller';
 
 @Module({
   controllers: [EmittersController],
-  providers: [EmittersService],
+  providers: [EmittersService, EmittersRepository],
   exports: [EmittersService],
 })
 export class EmittersModule {}
