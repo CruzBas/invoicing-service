@@ -22,7 +22,7 @@ npm run start:dev
 Swagger UI queda en `http://localhost:3000/docs` (el JSON en `/docs-json`). Con **Authorize** se
 cargan `x-admin-key` y `x-api-key` una vez y quedan guardadas al recargar.
 
-La configuración se valida con zod al arrancar (`src/config/config.schema.ts`): si falta algo, el
+La configuración se valida con zod al arrancar (`src/shared/infrastructure/config/config.schema.ts`): si falta algo, el
 servicio no levanta. Ningún host ni credencial está en el código.
 
 ### Dar de alta un emisor y un consumidor
@@ -125,7 +125,7 @@ npm run test:e2e     # Testcontainers + PostgreSQL 18: concurrencia, idempotenci
 npm run test:sandbox # contra el sandbox real de Hacienda; ver variables en test/hacienda-sandbox.e2e-spec.ts
 ```
 
-Los XSD de `src/documents/xml/xsd/` son los v4.4 oficiales (el CDN de Hacienda los sirve con 403
+Los XSD de `src/documents/infrastructure/xml/xsd/` son los v4.4 oficiales (el CDN de Hacienda los sirve con 403
 fuera del navegador; se tomaron de una copia pública). Solo se cambió la ruta del `import` de
 `xmldsig-core-schema.xsd`.
 
