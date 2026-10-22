@@ -13,7 +13,7 @@ import {
   EmittersRepository,
 } from '../infrastructure/emitters.repository';
 import { SecretBox } from '../infrastructure/secret-box';
-import { CertificateBody, EmitterBody } from './emitters.schemas';
+import { CertificateDto, EmitterDto } from './emitters.dto';
 
 export type { EmitterProfile };
 
@@ -35,11 +35,11 @@ export class EmittersService {
     this.box = new SecretBox(config.get('CERT_ENCRYPTION_KEY'));
   }
 
-  upsert(id: string, body: EmitterBody): Promise<EmitterProfile> {
+  upsert(id: string, body: EmitterDto): Promise<EmitterProfile> {
     return this.emitters.upsert(id, body);
   }
 
-  async setCertificate(id: string, body: CertificateBody) {
+  async setCertificate(id: string, body: CertificateDto) {
     await this.get(id);
     const p12 = Buffer.from(body.certificateBase64, 'base64');
     let notAfter: Date;

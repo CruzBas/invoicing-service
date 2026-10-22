@@ -4,7 +4,7 @@ import { ForbiddenError } from '../../shared/application/errors';
 import { AuthenticatedClient } from '../../clients/domain/authenticated-client';
 import { LookupsService } from '../../lookups/application/lookups.service';
 import { DocumentIssuer, checkedTotals } from './document-issuer';
-import { IssueDocumentBody } from './documents.schemas';
+import { IssueDocumentDto } from './documents.dto';
 
 /** POST /v1/documents: invoice (01) or ticket (04). */
 @Injectable()
@@ -17,7 +17,7 @@ export class IssueDocumentUseCase {
   async execute(
     client: AuthenticatedClient,
     idempotencyKey: string,
-    body: IssueDocumentBody,
+    body: IssueDocumentDto,
   ) {
     if (!client.emitterIds.includes(body.emitterId)) {
       throw new ForbiddenError('This key cannot use that emitter');

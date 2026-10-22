@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Emitter } from '@prisma/client';
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service';
-import { EmitterBody } from '../application/emitters.schemas';
+import { EmitterDto } from '../application/emitters.dto';
 
 /** Emitter data without any encrypted column. */
 const SECRETS = {
@@ -19,7 +19,7 @@ export type EncryptedSecrets = Pick<Emitter, keyof typeof SECRETS>;
 export class EmittersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  upsert(id: string, body: EmitterBody): Promise<EmitterProfile> {
+  upsert(id: string, body: EmitterDto): Promise<EmitterProfile> {
     return this.prisma.emitter.upsert({
       where: { id },
       create: { id, ...body },

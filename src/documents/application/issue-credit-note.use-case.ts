@@ -12,7 +12,7 @@ import { Receiver } from '../domain/receiver';
 import { StoredLine, toLineInput } from '../domain/stored-line';
 import { DocumentRepository } from '../infrastructure/document.repository';
 import { DocumentIssuer, checkedTotals } from './document-issuer';
-import { CreditNoteBody } from './documents.schemas';
+import { CreditNoteDto } from './documents.dto';
 
 /** POST /v1/documents/:id/credit-notes: full or partial refund of an accepted document. */
 @Injectable()
@@ -26,7 +26,7 @@ export class IssueCreditNoteUseCase {
     client: AuthenticatedClient,
     idempotencyKey: string,
     originalId: string,
-    body: CreditNoteBody,
+    body: CreditNoteDto,
   ) {
     const existing = await this.issuer.findExisting(client.id, idempotencyKey);
     if (existing) return existing;

@@ -7,7 +7,7 @@ import { EmittersService } from '../../emitters/application/emitters.service';
 import { generateApiKey, hashApiKey } from '../domain/api-key';
 import { AuthenticatedClient } from '../domain/authenticated-client';
 import { ClientsRepository } from '../infrastructure/clients.repository';
-import { ClientBody, CreateClientBody } from './clients.schemas';
+import { ClientDto, CreateClientDto } from './clients.dto';
 
 /** Consumers of the service (cotizadores, nora) and their API keys. */
 @Injectable()
@@ -17,7 +17,7 @@ export class ClientsService {
     private readonly emitters: EmittersService,
   ) {}
 
-  async create(body: CreateClientBody) {
+  async create(body: CreateClientDto) {
     await this.assertEmittersExist(body.emitterIds);
     const apiKey = generateApiKey();
     const client = await this.clients.create({
@@ -29,7 +29,7 @@ export class ClientsService {
     return { id: client.id, name: client.name, apiKey };
   }
 
-  async update(id: string, body: ClientBody) {
+  async update(id: string, body: ClientDto) {
     await this.assertEmittersExist(body.emitterIds);
     if (!(await this.clients.exists(id))) throw new NotFoundError();
     const changes = {
