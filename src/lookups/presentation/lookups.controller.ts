@@ -1,8 +1,8 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { ApiKeyGuard } from '../auth/api-key.guard';
-import { API_KEY } from '../common/openapi';
-import { LookupsService } from './lookups.service';
+import { ApiKeyGuard } from '../../clients/presentation/api-key.guard';
+import { API_KEY } from '../../shared/presentation/openapi';
+import { LookupsService } from '../application/lookups.service';
 
 @ApiTags('lookups')
 @ApiSecurity(API_KEY)

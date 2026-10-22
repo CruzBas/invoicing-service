@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
-import { LookupsController } from './lookups.controller';
-import { LookupsService } from './lookups.service';
+import { ClientsModule } from '../clients/clients.module';
+import { LookupsService } from './application/lookups.service';
+import { HaciendaPublicApiClient } from './infrastructure/hacienda-public-api.client';
+import { LookupsController } from './presentation/lookups.controller';
 
 @Module({
+  imports: [ClientsModule],
   controllers: [LookupsController],
-  providers: [LookupsService],
+  providers: [LookupsService, HaciendaPublicApiClient],
   exports: [LookupsService],
 })
 export class LookupsModule {}
