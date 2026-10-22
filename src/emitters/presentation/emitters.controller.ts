@@ -1,16 +1,8 @@
 import { Body, Controller, Param, Put, UseGuards } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { AdminKeyGuard } from '../../clients/presentation/admin-key.guard';
-import { ADMIN_KEY, ApiZodBody } from '../../shared/presentation/openapi';
-import { ZodValidationPipe } from '../../shared/presentation/zod-validation.pipe';
-import {
-  certificateBodySchema,
-  emitterBodySchema,
-} from '../application/emitters.schemas';
-import type {
-  CertificateBody,
-  EmitterBody,
-} from '../application/emitters.schemas';
+import { ADMIN_KEY } from '../../shared/presentation/openapi';
+import { CertificateDto, EmitterDto } from '../application/emitters.dto';
 import { EmittersService } from '../application/emitters.service';
 
 @ApiTags('admin')
@@ -21,20 +13,12 @@ export class EmittersController {
   constructor(private readonly emitters: EmittersService) {}
 
   @Put(':id')
-  @ApiZodBody(emitterBodySchema)
-  upsert(
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(emitterBodySchema)) body: EmitterBody,
-  ) {
+  upsert(@Param('id') id: string, @Body() body: EmitterDto) {
     return this.emitters.upsert(id, body);
   }
 
   @Put(':id/certificate')
-  @ApiZodBody(certificateBodySchema)
-  setCertificate(
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(certificateBodySchema)) body: CertificateBody,
-  ) {
+  setCertificate(@Param('id') id: string, @Body() body: CertificateDto) {
     return this.emitters.setCertificate(id, body);
   }
 }

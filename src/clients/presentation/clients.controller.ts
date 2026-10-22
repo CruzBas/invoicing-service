@@ -1,15 +1,7 @@
 import { Body, Controller, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { ADMIN_KEY, ApiZodBody } from '../../shared/presentation/openapi';
-import { ZodValidationPipe } from '../../shared/presentation/zod-validation.pipe';
-import {
-  clientBodySchema,
-  createClientSchema,
-} from '../application/clients.schemas';
-import type {
-  ClientBody,
-  CreateClientBody,
-} from '../application/clients.schemas';
+import { ADMIN_KEY } from '../../shared/presentation/openapi';
+import { ClientDto, CreateClientDto } from '../application/clients.dto';
 import { ClientsService } from '../application/clients.service';
 import { AdminKeyGuard } from './admin-key.guard';
 
@@ -22,19 +14,12 @@ export class ClientsController {
   constructor(private readonly clients: ClientsService) {}
 
   @Post()
-  @ApiZodBody(createClientSchema)
-  create(
-    @Body(new ZodValidationPipe(createClientSchema)) body: CreateClientBody,
-  ) {
+  create(@Body() body: CreateClientDto) {
     return this.clients.create(body);
   }
 
   @Put(':id')
-  @ApiZodBody(clientBodySchema)
-  update(
-    @Param('id') id: string,
-    @Body(new ZodValidationPipe(clientBodySchema)) body: ClientBody,
-  ) {
+  update(@Param('id') id: string, @Body() body: ClientDto) {
     return this.clients.update(id, body);
   }
 }

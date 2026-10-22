@@ -19,18 +19,9 @@ import {
   ApiKeyGuard,
   CurrentClient,
 } from '../../clients/presentation/api-key.guard';
-import { API_KEY, ApiZodBody } from '../../shared/presentation/openapi';
-import { ZodValidationPipe } from '../../shared/presentation/zod-validation.pipe';
+import { API_KEY } from '../../shared/presentation/openapi';
 import { DocumentQueries } from '../application/document-queries';
-import {
-  creditNoteSchema,
-  idempotencyKeySchema,
-  issueDocumentSchema,
-} from '../application/documents.schemas';
-import type {
-  CreditNoteBody,
-  IssueDocumentBody,
-} from '../application/documents.schemas';
+import { CreditNoteDto, IssueDocumentDto } from '../application/documents.dto';
 import { IssueCreditNoteUseCase } from '../application/issue-credit-note.use-case';
 import { IssueDocumentUseCase } from '../application/issue-document.use-case';
 import type { Document } from '../infrastructure/document.repository';
@@ -49,11 +40,10 @@ export class DocumentsController {
   @Post()
   @HttpCode(202)
   @ApiHeader({ name: 'Idempotency-Key', required: true })
-  @ApiZodBody(issueDocumentSchema)
   async issue(
     @CurrentClient() client: AuthenticatedClient,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Body(new ZodValidationPipe(issueDocumentSchema)) body: IssueDocumentBody,
+    @Body() body: IssueDocumentDto,
   ) {
     const doc = await this.issueDocument.execute(
       client,
@@ -66,12 +56,11 @@ export class DocumentsController {
   @Post(':id/credit-notes')
   @HttpCode(202)
   @ApiHeader({ name: 'Idempotency-Key', required: true })
-  @ApiZodBody(creditNoteSchema)
   async creditNote(
     @CurrentClient() client: AuthenticatedClient,
     @Param('id') id: string,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Body(new ZodValidationPipe(creditNoteSchema)) body: CreditNoteBody,
+    @Body() body: CreditNoteDto,
   ) {
     const doc = await this.issueCreditNote.execute(
       client,
@@ -144,11 +133,10 @@ export class DocumentsController {
 }
 
 function parseIdempotencyKey(value: string | undefined): string {
-  const parsed = idempotencyKeySchema.safeParse(value);
-  if (!parsed.success) {
+  if (!value || value.length > 100) {
     throw new BadRequestException('Idempotency-Key header is required');
   }
-  return parsed.data;
+  return value;
 }
 
 function sendFile(

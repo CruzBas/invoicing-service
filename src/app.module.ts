@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
 import { ClientsModule } from './clients/clients.module';
@@ -10,6 +10,7 @@ import { AppConfigModule } from './shared/infrastructure/config/config.module';
 import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
 import { AppErrorFilter } from './shared/presentation/app-error.filter';
 import { HealthController } from './shared/presentation/health.controller';
+import { appValidationPipe } from './shared/presentation/validation.pipe';
 
 @Module({
   imports: [
@@ -23,6 +24,9 @@ import { HealthController } from './shared/presentation/health.controller';
     DocumentsModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_FILTER, useClass: AppErrorFilter }],
+  providers: [
+    { provide: APP_FILTER, useClass: AppErrorFilter },
+    { provide: APP_PIPE, useFactory: appValidationPipe },
+  ],
 })
 export class AppModule {}
