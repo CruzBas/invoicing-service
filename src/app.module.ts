@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
-import { ClientsController } from './clients/clients.controller';
-import { AppConfigModule } from './config/config.module';
+import { ClientsModule } from './clients/clients.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EmittersModule } from './emitters/emitters.module';
-import { HealthController } from './health/health.controller';
 import { LookupsModule } from './lookups/lookups.module';
-import { PrismaModule } from './prisma/prisma.module';
+import { AppConfigModule } from './shared/infrastructure/config/config.module';
+import { PrismaModule } from './shared/infrastructure/prisma/prisma.module';
+import { AppErrorFilter } from './shared/presentation/app-error.filter';
+import { HealthController } from './shared/presentation/health.controller';
 
 @Module({
   imports: [
@@ -15,10 +17,12 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     ScheduleModule.forRoot(),
     TerminusModule,
+    ClientsModule,
     EmittersModule,
     LookupsModule,
     DocumentsModule,
   ],
-  controllers: [ClientsController, HealthController],
+  controllers: [HealthController],
+  providers: [{ provide: APP_FILTER, useClass: AppErrorFilter }],
 })
 export class AppModule {}
