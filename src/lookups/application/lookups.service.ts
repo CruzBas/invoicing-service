@@ -44,7 +44,7 @@ export class LookupsService {
     return this.cabys.getOrLoad(q.toLowerCase(), () => this.hacienda.cabys(q));
   }
 
-  /** BCCR selling rate for today (Costa Rica's calendar day). */
+
   usdExchangeRate(): Promise<Decimal> {
     const today = DateTime.now().setZone(COSTA_RICA_ZONE).toISODate()!;
     return this.rates.getOrLoad(today, async () => {
