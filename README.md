@@ -22,7 +22,7 @@ npm run start:dev
 Swagger UI queda en `http://localhost:3000/docs` (el JSON en `/docs-json`). Con **Authorize** se
 cargan `x-admin-key` y `x-api-key` una vez y quedan guardadas al recargar.
 
-La configuración se valida con zod al arrancar (`src/shared/infrastructure/config/config.schema.ts`): si falta algo, el
+La configuración se valida con class-validator al arrancar (`src/shared/infrastructure/config/config.schema.ts`): si falta algo, el
 servicio no levanta. Ningún host ni credencial está en el código.
 
 ### Dar de alta un emisor y un consumidor
