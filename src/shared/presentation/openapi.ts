@@ -6,7 +6,6 @@ import { z, ZodType } from 'zod';
 export const API_KEY = 'api-key';
 export const ADMIN_KEY = 'admin-key';
 
-
 export const ApiZodBody = (schema: ZodType) =>
   ApiBody({
     schema: z.toJSONSchema(schema, {
@@ -14,7 +13,6 @@ export const ApiZodBody = (schema: ZodType) =>
       target: 'openapi-3.0',
     }) as SchemaObject,
   });
-
 
 export function setupOpenApi(app: INestApplication) {
   const config = new DocumentBuilder()
