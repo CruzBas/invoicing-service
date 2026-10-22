@@ -2,15 +2,15 @@ import { createHmac } from 'crypto';
 import { AddressInfo } from 'net';
 import { Server, createServer } from 'http';
 import request from 'supertest';
-import { HaciendaAuthClient } from '../src/hacienda/hacienda-auth.client';
+import { HaciendaAuthClient } from '../src/documents/infrastructure/hacienda/hacienda-auth.client';
 import {
   HaciendaReceptionClient,
   ReceptionPayload,
   StatusResult,
   SubmitResult,
-} from '../src/hacienda/hacienda-reception.client';
-import { StatusPoller } from '../src/hacienda/status-poller';
-import { PrismaService } from '../src/prisma/prisma.service';
+} from '../src/documents/infrastructure/hacienda/hacienda-reception.client';
+import { StatusPoller } from '../src/documents/application/status-poller';
+import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service';
 import { TestEnv, WEBHOOK_SECRET, startTestEnv, ticketBody } from './support';
 
 /** Hacienda's reception API, scripted per test. */

@@ -1,6 +1,6 @@
 import request from 'supertest';
-import { DocumentDeliveryService } from '../src/documents/document-delivery.service';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { DocumentDeliveryService } from '../src/documents/application/document-delivery.service';
+import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service';
 import { TestEnv, startTestEnv, ticketBody as body } from './support';
 
 describe('issuing against a real PostgreSQL 18', () => {

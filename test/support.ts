@@ -7,7 +7,7 @@ import {
 import { execSync } from 'child_process';
 import { randomBytes } from 'crypto';
 import request from 'supertest';
-import { createTestP12 } from '../src/signing/test-certificate';
+import { createTestP12 } from '../src/shared/infrastructure/signing/test-certificate';
 
 export const ADMIN_KEY = randomBytes(32).toString('hex');
 export const WEBHOOK_SECRET = randomBytes(32).toString('hex');

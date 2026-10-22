@@ -2,8 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { readFileSync } from 'fs';
 import request from 'supertest';
-import { DocumentDeliveryService } from '../src/documents/document-delivery.service';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { DocumentDeliveryService } from '../src/documents/application/document-delivery.service';
+import { PrismaService } from '../src/shared/infrastructure/prisma/prisma.service';
 
 /**
  * Against Hacienda's real sandbox. Skipped unless HACIENDA_SANDBOX=1, with the
