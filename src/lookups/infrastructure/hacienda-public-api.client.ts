@@ -15,12 +15,12 @@ interface RawCabys {
   impuesto: number;
 }
 
-/** Hacienda's public endpoints. A failure is an UpstreamError (502), as in rule 10. */
+
 @Injectable()
 export class HaciendaPublicApiClient {
-  constructor(private readonly config: AppConfigService) {}
+  constructor(private readonly config: AppConfigService) { }
 
-  /** null when Hacienda does not know the identification. */
+
   async taxpayer(identification: string): Promise<unknown> {
     const res = await this.get(`/fe/ae?identificacion=${identification}`);
     if (res.status === 404) return null;
@@ -41,7 +41,7 @@ export class HaciendaPublicApiClient {
     }));
   }
 
-  /** BCCR selling rate, or undefined when the answer has none. */
+
   async usdSellingRate(): Promise<number | undefined> {
     const body = (await this.json(await this.get('/indicadores/tc/dolar'))) as {
       venta?: { fecha?: string; valor?: number };
