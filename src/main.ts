@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ObserveInstrument } from './observe';
+import { loadObserve } from './observe';
 import { setupOpenApi } from './shared/presentation/openapi';
 import { AppConfigService } from './shared/infrastructure/config/app-config.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const { observeModule, ObserveInstrument } = await loadObserve();
+  const app = await NestFactory.create(AppModule.register(observeModule), {
     instrument: ObserveInstrument,
   });
   app.enableShutdownHooks();
