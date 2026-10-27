@@ -74,7 +74,7 @@ export class DocumentIssuer {
     private readonly signer: XadesSigner,
     private readonly delivery: DocumentDeliveryService,
     private readonly config: AppConfigService,
-  ) {}
+  ) { }
 
   /** The document already issued with that Idempotency-Key, if any. */
   findExisting(clientId: string, idempotencyKey: string) {
@@ -104,7 +104,7 @@ export class DocumentIssuer {
           documentType: req.documentType,
           number,
         });
-        // One instant for the clave, FechaEmision and the reception JSON.
+
         const issuedAt = DateTime.now().setZone(COSTA_RICA_ZONE);
         const key = buildDocumentKey({
           issuedAt,
