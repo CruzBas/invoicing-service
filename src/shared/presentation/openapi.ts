@@ -4,6 +4,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 export const API_KEY = 'api-key';
 export const ADMIN_KEY = 'admin-key';
 
+// Vercel does not ship swagger-ui-dist's static files with the function, so
+// the UI assets come from a CDN (same version as the installed package).
+const SWAGGER_UI_CDN = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.13';
+
 export function setupOpenApi(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('invoicing-service')
@@ -15,6 +19,13 @@ export function setupOpenApi(app: INestApplication) {
     'docs',
     app,
     () => SwaggerModule.createDocument(app, config),
-    { swaggerOptions: { persistAuthorization: true } },
+    {
+      swaggerOptions: { persistAuthorization: true },
+      customCssUrl: `${SWAGGER_UI_CDN}/swagger-ui.css`,
+      customJs: [
+        `${SWAGGER_UI_CDN}/swagger-ui-bundle.js`,
+        `${SWAGGER_UI_CDN}/swagger-ui-standalone-preset.js`,
+      ],
+    },
   );
 }
